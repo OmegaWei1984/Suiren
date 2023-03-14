@@ -1,1 +1,1 @@
-./skynet/skynet configs/main.conf
+./skynet/skynet configs/node$1.conf
