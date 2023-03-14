@@ -1,0 +1,1 @@
+./skynet/skynet configs/main.conf
