@@ -33,7 +33,7 @@ local function dispatch(session, address, cmd, ...)
 end
 
 function Init()
-    skynet.dispatch("local", dispatch)
+    skynet.dispatch("lua", dispatch)
     if M.init then
         M.init()
     end
