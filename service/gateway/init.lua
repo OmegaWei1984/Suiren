@@ -1,10 +1,10 @@
 local skynet = require "skynet"
 local s = require "service"
-local runconf = require "configs.runconf"
+local runconf = require "runconf"
 local socket = require "skynet.socket"
 
 local conns = {}
-local player = {}
+local players = {}
 
 local function conn()
     local m = {
@@ -23,29 +23,91 @@ local function gateplayer()
     return m
 end
 
-function s.init()
-    local recv_loop = function (fd)
-        socket.start(fd)
-        skynet.error("socket connected " .. fd)
-        local readbuff = ""
-        while true do
-            -- todo
+local function str_unpack(msgstr)
+    local msg = {}
+    while true do
+        local arg, rest = string.match(msgstr, "(%w+),(.*)")
+        if arg then
+            msgstr = rest
+            table.insert(msg, arg)
+        else
+            table.insert(msg, msgstr)
+            break
         end
     end
+    return msg[1], msg
+end
 
-    local connect = function(fd, addr)
-        print("connect from" .. addr .. " " .. fd)
-        local c = conn()
-        conns[fd] = c
-        c.fd = fd
-        skynet.fork(recv_loop, fd)
+local function str_pack(cmd, msg)
+    return table.concat(msg, ",") .. "\r\n"
+end
+
+local function process_msg(fd, msgstr)
+    local cmd, msg = str_unpack(msgstr)
+    skynet.error("recv" .. fd .. " [" .. cmd .. "] {" .. table.concat(msg, ",") .. "}")
+
+    local c = conns[fd]
+    local playerid = c.playerid
+    if not playerid then
+        local node = skynet.getenv("node")
+        local nodecfg = runconf[node]
+        local loginid = math.random(1, #nodecfg.login)
+        local login = "login"..loginid
+        -- skynet.send(login, "lua", "client", fd, cmd, msg)
+    else
+        local gplayer = players[playerid]
+        local agent = gplayer.agent
+        -- skynet.send(agent, "lua", "client", cmd, msg)
     end
+end
 
+local function process_buff(fd, readbuff)
+    while true do
+        local msgstr, rest = string.match(readbuff, "([%w%p]+)\r\n(.*)")
+        if msgstr then
+            readbuff = rest
+            process_msg(fd, msgstr)
+        else
+            return readbuff
+        end
+    end
+end
+
+local function disconnect(fd)
+    -- todo
+end
+
+local function recv_loop(fd)
+    socket.start(fd)
+    skynet.error("socket connected " .. fd)
+    local readbuff = ""
+    while true do
+        local recvstr = socket.read(fd)
+        if recvstr then
+            readbuff = readbuff .. recvstr
+            readbuff = process_buff(fd, readbuff)
+        else
+            skynet.error("socket close " .. fd)
+            disconnect(fd)
+            socket.close(fd)
+            return
+        end
+    end
+end
+
+local function connect(fd, addr)
+    print("connect from " .. addr .. " " .. fd)
+    local c = conn()
+    conns[fd] = c
+    c.fd = fd
+    skynet.fork(recv_loop, fd)
+end
+
+function s.init()
     skynet.error("[start]" .. s.name .. " " .. s.id)
     local node = skynet.getenv("node")
     local nodecfg = runconf[node]
     local port = nodecfg.gateway[s.id].port
-
 
     local listenfd = socket.listen("0.0.0.0", port)
     skynet.error("Listen socket: ", "0.0.0.0", port)
