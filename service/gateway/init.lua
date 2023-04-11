@@ -103,6 +103,45 @@ local function connect(fd, addr)
     skynet.fork(recv_loop, fd)
 end
 
+s.resp.send_by_fd = function (source, fd, msg)
+    if not conns[fd] then
+        return
+    end
+
+    local buff = str_pack(msg[1], msg)
+    skynet.error("send "..fd.." ["..msg[1].."] {"..table.concat(msg, ",").."}")
+    socket.write(fd, buff)
+end
+
+s.resp.send = function (source, playerid, msg)
+    local gplayer = players[playerid]
+    if gplayer == nil then
+        return
+    end
+    local c = gplayer.conn
+    if c == nil then
+        return
+    end
+end
+
+s.resp.sure_agent = function (source, fd, playerid, agent)
+    local c = conns[fd]
+    if not c then
+        skynet.call("agentmgr", "lua", "reqkick", playerid, "未完成登录即下线")
+        return false
+    end
+
+    c.playerid = playerid
+
+    local gplayer = gateplayer()
+    gplayer.playerid = playerid
+    gplayer.agent = agent
+    gplayer.conn  = c
+    players[playerid] = gplayer
+
+    return true
+end
+
 function s.init()
     skynet.error("[start]" .. s.name .. " " .. s.id)
     local node = skynet.getenv("node")
