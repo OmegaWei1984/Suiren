@@ -74,7 +74,19 @@ local function process_buff(fd, readbuff)
 end
 
 local function disconnect(fd)
-    -- todo
+    local c = conns[fd]
+    if not c then
+        return
+    end
+
+    local playerid = c.playerid
+    if not playerid then
+        return
+    else
+        players[playerid] = nil
+        local reason = "kick"
+        skynet.call("agentmgr", "lua", "reqkick", playerid, reason)
+    end
 end
 
 local function recv_loop(fd)
@@ -140,6 +152,23 @@ s.resp.sure_agent = function (source, fd, playerid, agent)
     players[playerid] = gplayer
 
     return true
+end
+
+s.resp.kick = function (source, playerid)
+    local gplayer = players[playerid]
+    if not gplayer then
+        return
+    end
+
+    local c = gplayer.conn
+    players[playerid] = nil
+
+    if not c then
+        return
+    end
+    conns[c.fd] = nil
+    disconnect(c.fd)
+    socket.close(c.fd)
 end
 
 function s.init()
