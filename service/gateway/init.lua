@@ -52,12 +52,12 @@ local function process_msg(fd, msgstr)
         local node = skynet.getenv("node")
         local nodecfg = runconf[node]
         local loginid = math.random(1, #nodecfg.login)
-        local login = "login"..loginid
-        -- skynet.send(login, "lua", "client", fd, cmd, msg)
+        local login = "login" .. loginid
+        skynet.send(login, "lua", "client", fd, cmd, msg)
     else
         local gplayer = players[playerid]
         local agent = gplayer.agent
-        -- skynet.send(agent, "lua", "client", cmd, msg)
+        skynet.send(agent, "lua", "client", cmd, msg)
     end
 end
 
@@ -115,17 +115,17 @@ local function connect(fd, addr)
     skynet.fork(recv_loop, fd)
 end
 
-s.resp.send_by_fd = function (source, fd, msg)
+s.resp.send_by_fd = function(source, fd, msg)
     if not conns[fd] then
         return
     end
 
     local buff = str_pack(msg[1], msg)
-    skynet.error("send "..fd.." ["..msg[1].."] {"..table.concat(msg, ",").."}")
+    skynet.error("send " .. fd .. " [" .. msg[1] .. "] {" .. table.concat(msg, ",") .. "}")
     socket.write(fd, buff)
 end
 
-s.resp.send = function (source, playerid, msg)
+s.resp.send = function(source, playerid, msg)
     local gplayer = players[playerid]
     if gplayer == nil then
         return
@@ -134,27 +134,29 @@ s.resp.send = function (source, playerid, msg)
     if c == nil then
         return
     end
+
+    s.resp.send_by_fd(nil, c.fd, msg)
 end
 
-s.resp.sure_agent = function (source, fd, playerid, agent)
+s.resp.sure_agent = function(source, fd, playerid, agent)
     local c = conns[fd]
     if not c then
         skynet.call("agentmgr", "lua", "reqkick", playerid, "未完成登录即下线")
         return false
     end
 
-    c.playerid = playerid
+    c.playerid        = playerid
 
-    local gplayer = gateplayer()
-    gplayer.playerid = playerid
-    gplayer.agent = agent
-    gplayer.conn  = c
+    local gplayer     = gateplayer()
+    gplayer.playerid  = playerid
+    gplayer.agent     = agent
+    gplayer.conn      = c
     players[playerid] = gplayer
 
     return true
 end
 
-s.resp.kick = function (source, playerid)
+s.resp.kick = function(source, playerid)
     local gplayer = players[playerid]
     if not gplayer then
         return
