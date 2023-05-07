@@ -3,7 +3,7 @@ local runconf = require "runconf"
 local cluster = require "skynet.cluster"
 local skynet_manager = require "skynet.manager"
 
-skynet.start(function ()
+skynet.start(function()
     skynet.error("[start main]")
 
     local mynode = skynet.getenv("node")
@@ -17,12 +17,12 @@ skynet.start(function ()
     -- gate
     for i, _ in pairs(nodecfg.gateway or {}) do
         local srv = skynet.newservice("gateway", "gateway", i)
-        skynet.name("gateway"..i, srv)
+        skynet.name("gateway" .. i, srv)
     end
     -- login
     for i, _ in pairs(nodecfg.login or {}) do
-       local srv = skynet.newservice("login", "login", i)
-       skynet.name("login"..i, srv)
+        local srv = skynet.newservice("login", "login", i)
+        skynet.name("login" .. i, srv)
     end
     -- agentmgr
     local anode = runconf.agentmgr.node
@@ -32,6 +32,11 @@ skynet.start(function ()
     else
         local proxy = cluster.proxy(anode, "agentmgr")
         skynet.name("agentmgr", proxy)
+    end
+    -- scene
+    for _, sid in pairs(runconf.scene[mynode] or {}) do
+        local srv = skynet.newservice("scene", "scene", sid)
+        skynet.name("scene" .. sid, srv)
     end
 
     skynet.exit()
