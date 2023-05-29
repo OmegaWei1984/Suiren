@@ -26,7 +26,7 @@ end
 local function str_unpack(msgstr)
     local msg = {}
     while true do
-        local arg, rest = string.match(msgstr, "(%w+),(.*)")
+        local arg, rest = string.match(msgstr, "([%w-.]+),(.*)")
         if arg then
             msgstr = rest
             table.insert(msg, arg)
