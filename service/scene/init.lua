@@ -134,6 +134,7 @@ s.resp.enter = function(source, playerid, node, agent)
     b.agent = agent
     local entermsg = { "enter", playerid, b.x, b.y, b.size }
     broadcast(entermsg)
+    balls[playerid] = b
     local ret_msg = { "enter", 0, "进入成功" }
     s.send(b.node, b.agent, "send", ret_msg)
     s.send(b.node, b.agent, "send", balllist_msg())
@@ -155,8 +156,8 @@ s.resp.shift = function(source, playerid, x, y)
     if not b then
         return false
     end
-    b.speedx = x
-    b.speedy = y
+    b.speedx = tonumber(x)
+    b.speedy = tonumber(y)
 end
 
 s.start(...)
